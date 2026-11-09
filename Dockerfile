@@ -4,7 +4,9 @@
 # Licensed under the MIT License. See LICENSE in the project root for details.
 # --------------------------------------------------------------------------
 
-FROM python:3.10-slim
+# yt-dlp currently requires Python 3.11 or newer.
+# Keep this aligned with runtime.txt and the Railway Docker build.
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -26,8 +28,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -U pip setuptools wheel && \
-    pip3 install --no-cache-dir -U -r requirements.txt
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    python -m pip install --no-cache-dir --upgrade -r requirements.txt
 
 COPY . .
 
