@@ -82,7 +82,20 @@ async def settings_back_markup(client, CallbackQuery: CallbackQuery, _):
     if CallbackQuery.message.chat.type == ChatType.PRIVATE:
         await app.resolve_peer(OWNER_ID)
         OWNER = OWNER_ID
-        buttons = private_panel(_)
+        # private_panel() uses raw Bot API dictionaries for styled buttons.
+        # Pyrogram's InlineKeyboardMarkup requires InlineKeyboardButton objects.
+        raw_buttons = private_panel(_)
+        buttons = [
+            [
+                InlineKeyboardButton(
+                    text=button["text"],
+                    callback_data=button.get("callback_data"),
+                    url=button.get("url"),
+                )
+                for button in row
+            ]
+            for row in raw_buttons
+        ]
         return await CallbackQuery.edit_message_text(
             _["start_2"].format(CallbackQuery.from_user.mention, app.mention),
             reply_markup=InlineKeyboardMarkup(buttons),
