@@ -82,23 +82,33 @@ async def settings_back_markup(client, CallbackQuery: CallbackQuery, _):
     if CallbackQuery.message.chat.type == ChatType.PRIVATE:
         await app.resolve_peer(OWNER_ID)
         OWNER = OWNER_ID
-        # private_panel() uses raw Bot API dictionaries for styled buttons.
-        # Pyrogram's InlineKeyboardMarkup requires InlineKeyboardButton objects.
+        # private_panel() deliberately returns raw Bot API dictionaries so
+        # start.py can use Telegram-only style/custom-emoji fields. Never pass
+        # those dictionaries directly to Pyrogram: every cell must be a
+        # Pyrogram InlineKeyboardButton instance before building the markup.
         raw_buttons = private_panel(_)
-        buttons = [
-            [
-                InlineKeyboardButton(
-                    text=button["text"],
-                    callback_data=button.get("callback_data"),
-                    url=button.get("url"),
-                )
-                for button in row
-            ]
-            for row in raw_buttons
-        ]
+        pyrogram_buttons = []
+        for row in raw_buttons or []:
+            converted_row = []
+            for button in row or []:
+                if isinstance(button, InlineKeyboardButton):
+                    converted_row.append(button)
+                    continue
+                if not isinstance(button, dict) or not button.get("text"):
+                    continue
+                button_kwargs = {"text": str(button["text"])}
+                if button.get("callback_data") is not None:
+                    button_kwargs["callback_data"] = str(button["callback_data"])
+                if button.get("url") is not None:
+                    button_kwargs["url"] = str(button["url"])
+                converted_row.append(InlineKeyboardButton(**button_kwargs))
+            if converted_row:
+                pyrogram_buttons.append(converted_row)
+
+        markup = InlineKeyboardMarkup(pyrogram_buttons) if pyrogram_buttons else None
         return await CallbackQuery.edit_message_text(
             _["start_2"].format(CallbackQuery.from_user.mention, app.mention),
-            reply_markup=InlineKeyboardMarkup(buttons),
+            reply_markup=markup,
         )
     else:
         buttons = setting_markup(_)
