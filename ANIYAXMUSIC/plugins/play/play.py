@@ -182,7 +182,17 @@ async def play_commnd(
                 cap = _["play_10"]
             elif "https://youtu.be" in url:
                 videoid = url.split("/")[-1].split("?")[0]
-                details, track_id = await YouTube.track(f"https://www.youtube.com/watch?v={videoid}")
+                try:
+                    details, track_id = await YouTube.track(
+                        f"https://www.youtube.com/watch?v={videoid}"
+                    )
+                except Exception as e:
+                    print(f"YouTube track lookup failed: {type(e).__name__}: {e}")
+                    return await mystic.edit_text(
+                        "» YouTube is currently refusing requests from this server, "
+                        "so I couldn't fetch this track. Please try a SoundCloud link "
+                        "or a Telegram audio file."
+                    )
                 streamtype = "youtube"
                 img = details["thumb"]
                 cap = _["play_11"].format(
@@ -193,8 +203,12 @@ async def play_commnd(
                 try:
                     details, track_id = await YouTube.track(url)
                 except Exception as e:
-                    print(e)
-                    return await mystic.edit_text(_["play_3"])
+                    print(f"YouTube track lookup failed: {type(e).__name__}: {e}")
+                    return await mystic.edit_text(
+                        "» YouTube is currently refusing requests from this server, "
+                        "so I couldn't fetch this track. Please try a SoundCloud link "
+                        "or a Telegram audio file."
+                    )
                 streamtype = "youtube"
                 img = details["thumb"]
                 cap = _["play_11"].format(
