@@ -51,6 +51,7 @@ pyttsx3
 pytz
 pytube
 py-tgcalls==0.9.7
+pyrogram==2.0.106
 pyyaml==6.0.1
 qrcode
 requests
@@ -65,5 +66,4 @@ unidecode
 wget
 youtube-search
 youtube-search-python
-git+https://github.com/KurimuzonAkuma/pyrogram
 git+https://github.com/yt-dlp/yt-dlp
