@@ -20,49 +20,82 @@ from config import BANNED_USERS
 
 
 async def init():
-    if (
-        not config.STRING1
-        and not config.STRING2
-        and not config.STRING3
-        and not config.STRING4
-        and not config.STRING5
-    ):
-        LOGGER(__name__).error("𝐒𝐭𝐫𝐢𝐧𝐠 𝐒𝐞𝐬𝐬𝐢𝐨𝐧 𝐍𝐨𝐭 𝐅𝐢𝐥𝐥𝐞𝐝, 𝐏𝐥𝐞𝐚𝐬𝐞 𝐅𝐢𝐥𝐥 𝐀 𝐏𝐲𝐫𝐨𝐠𝐫𝐚𝐦 𝐒𝐞𝐬𝐬𝐢𝐨𝐧")
-        exit()
-    await sudo()
+    app_started = False
+    userbot_started = False
+    call_started = False
+
     try:
-        users = await get_gbanned()
-        for user_id in users:
-            BANNED_USERS.add(user_id)
-        users = await get_banned_users()
-        for user_id in users:
-            BANNED_USERS.add(user_id)
-    except:
-        pass
-    await app.start()
-    for all_module in ALL_MODULES:
-        importlib.import_module("ANIYAXMUSIC.plugins" + all_module)
-    LOGGER("ANIYAXMUSIC.plugins").info("𝐀𝐥𝐥 𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬 𝐋𝐨𝐚𝐝𝐞𝐝 𝐁𝐚𝐛𝐲🥳...")
-    await userbot.start()
-    await ANIYA.start()
-    try:
-        await ANIYA.stream_call("https://te.legra.ph/file/29f784eb49d230ab62e9e.mp4")
-    except NoActiveGroupCall:
-        LOGGER("ANIYAXMUSIC").error(
-            "𝗣𝗹𝗭 𝗦𝗧𝗔𝗥𝗧 𝗬𝗢𝗨𝗥 𝗟𝗢𝗚 𝗚𝗥𝗢𝗨𝗣 𝗩𝗢𝗜𝗖𝗘𝗖𝗛𝗔𝗧\𝗖𝗛𝗔𝗡𝗡𝗘𝗟\n\n𝗦𝗧𝗥𝗔𝗡𝗚𝗘𝗥 𝗕𝗢𝗧 𝗦𝗧𝗢𝗣........"
-        )
-        exit()
-    except:
-        pass
-    await ANIYA.decorators()
-    LOGGER("ANIYAXMUSIC").info(
-        "╔═════ஜ۩۞۩ஜ════╗\n  ☠︎︎𝗠𝗔𝗗𝗘 𝗕𝗬 � ʜ ɪ ᴠ ᴀ ɴ ꜱ ʜ | ˹𐩃˼ ‹⤹\n╚═════ஜ۩۞۩ஜ════╝"
-    )
-    await idle()
-    await app.stop()
-    await userbot.stop()
-    LOGGER("ANIYAXMUSIC").info("𝗦𝗧𝗢𝗣 � ʜ ɪ ᴠ ᴀ ɴ ꜱ ʜ | ˹𐩃˼ ‹⤹ 𝗠𝗨𝗦𝗜𝗖🎻 𝗕𝗢𝗧..")
+        if not any((config.STRING1, config.STRING2, config.STRING3, config.STRING4, config.STRING5)):
+            LOGGER(__name__).error(
+                "String session not filled. Configure at least one assistant session."
+            )
+            return
+
+        await sudo()
+        try:
+            for user_id in await get_gbanned():
+                BANNED_USERS.add(user_id)
+            for user_id in await get_banned_users():
+                BANNED_USERS.add(user_id)
+        except Exception as exc:
+            LOGGER(__name__).warning(
+                f"Could not load all banned users: {type(exc).__name__}"
+            )
+
+        await app.start()
+        app_started = True
+
+        for all_module in ALL_MODULES:
+            importlib.import_module("ANIYAXMUSIC.plugins" + all_module)
+        LOGGER("ANIYAXMUSIC.plugins").info("All features loaded.")
+
+        await userbot.start()
+        userbot_started = True
+
+        await ANIYA.start()
+        call_started = True
+
+        try:
+            await ANIYA.stream_call("https://te.legra.ph/file/29f784eb49d230ab62e9e.mp4")
+        except NoActiveGroupCall:
+            LOGGER("ANIYAXMUSIC").warning(
+                "No active voice chat was found in LOGGER_ID. Startup will continue."
+            )
+        except Exception as exc:
+            LOGGER("ANIYAXMUSIC").warning(
+                f"Startup voice-chat test was skipped: {type(exc).__name__}"
+            )
+
+        await ANIYA.decorators()
+        LOGGER("ANIYAXMUSIC").info("AniyaMusic is running.")
+        await idle()
+
+    finally:
+        # Each service is stopped independently: one shutdown error must not
+        # prevent the remaining Telegram/PyTgCalls clients from closing.
+        if call_started:
+            try:
+                await ANIYA.stop()
+            except Exception as exc:
+                LOGGER("ANIYAXMUSIC").warning(
+                    f"Voice-call shutdown warning: {type(exc).__name__}"
+                )
+        if userbot_started:
+            try:
+                await userbot.stop()
+            except Exception as exc:
+                LOGGER("ANIYAXMUSIC").warning(
+                    f"Assistant shutdown warning: {type(exc).__name__}"
+                )
+        if app_started:
+            try:
+                await app.stop()
+            except Exception as exc:
+                LOGGER("ANIYAXMUSIC").warning(
+                    f"Bot shutdown warning: {type(exc).__name__}"
+                )
+        LOGGER("ANIYAXMUSIC").info("AniyaMusic shutdown complete.")
 
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(init())
+    asyncio.run(init())
