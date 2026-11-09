@@ -68,7 +68,8 @@ class Userbot(Client):
                 LOGGER(__name__).error(
                     "Assistant Account 1 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin!"
                 )
-                exit()
+                # Logging is optional; do not stop music playback if LOGGER_ID is unavailable.
+                pass
             self.one.id = self.one.me.id
             self.one.name = self.one.me.mention
             self.one.username = self.one.me.username
@@ -89,7 +90,8 @@ class Userbot(Client):
                 LOGGER(__name__).error(
                     "Assistant Account 2 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin!"
                 )
-                exit()
+                # Logging is optional; do not stop music playback if LOGGER_ID is unavailable.
+                pass
             self.two.id = self.two.me.id
             self.two.name = self.two.me.mention
             self.two.username = self.two.me.username
@@ -110,7 +112,8 @@ class Userbot(Client):
                 LOGGER(__name__).error(
                     "Assistant Account 3 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin! "
                 )
-                exit()
+                # Logging is optional; do not stop music playback if LOGGER_ID is unavailable.
+                pass
             self.three.id = self.three.me.id
             self.three.name = self.three.me.mention
             self.three.username = self.three.me.username
@@ -131,7 +134,8 @@ class Userbot(Client):
                 LOGGER(__name__).error(
                     "Assistant Account 4 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin! "
                 )
-                exit()
+                # Logging is optional; do not stop music playback if LOGGER_ID is unavailable.
+                pass
             self.four.id = self.four.me.id
             self.four.name = self.four.me.mention
             self.four.username = self.four.me.username
@@ -152,7 +156,8 @@ class Userbot(Client):
                 LOGGER(__name__).error(
                     "Assistant Account 5 has failed to access the log Group. Make sure that you have added your assistant to your log group and promoted as admin! "
                 )
-                exit()
+                # Logging is optional; do not stop music playback if LOGGER_ID is unavailable.
+                pass
             self.five.id = self.five.me.id
             self.five.name = self.five.me.mention
             self.five.username = self.five.me.username
