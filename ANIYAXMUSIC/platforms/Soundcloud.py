@@ -43,3 +43,47 @@ class SoundAPI:
             "filepath": xyz,
         }
         return track_details, xyz
+
+
+    async def search_download(self, query: str):
+        """Find and download one matching public SoundCloud audio track."""
+        import os
+
+        if not query or not query.strip():
+            raise ValueError("Track title is empty")
+
+        os.makedirs("downloads", exist_ok=True)
+        options = {
+            **self.opts,
+            "format": "bestaudio/best",
+            "noplaylist": True,
+            "quiet": True,
+            "no_warnings": True,
+        }
+        with YoutubeDL(options) as downloader:
+            info = downloader.extract_info(
+                f"scsearch1:{query.strip()}",
+                download=True,
+            )
+
+        entries = info.get("entries") if isinstance(info, dict) else None
+        track = next((item for item in (entries or []) if item), info)
+        if not isinstance(track, dict):
+            raise RuntimeError("No matching SoundCloud track was found")
+
+        requested = track.get("requested_downloads") or []
+        filepath = requested[0].get("filepath") if requested else None
+        if not filepath:
+            filepath = track.get("_filename") or downloader.prepare_filename(track)
+        if not filepath or not os.path.isfile(filepath):
+            raise FileNotFoundError("SoundCloud audio file was not created")
+
+        duration = int(track.get("duration") or 0)
+        details = {
+            "title": track.get("title") or query.strip(),
+            "duration_sec": duration,
+            "duration_min": seconds_to_min(duration) if duration else "00:00",
+            "uploader": track.get("uploader") or "SoundCloud",
+            "filepath": filepath,
+        }
+        return details, filepath
