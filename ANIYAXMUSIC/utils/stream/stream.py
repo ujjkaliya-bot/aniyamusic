@@ -14,7 +14,7 @@ from typing import Union
 from pyrogram.types import InlineKeyboardMarkup
 
 import config
-from ANIYAXMUSIC import Carbon, YouTube, app
+from ANIYAXMUSIC import Carbon, SoundCloud, YouTube, app
 from ANIYAXMUSIC.core.call import ANIYA
 from ANIYAXMUSIC.misc import db
 from ANIYAXMUSIC.utils.database import add_active_video_chat, is_active_chat
@@ -187,7 +187,21 @@ async def stream(
                 if file_path and os.path.exists(file_path):
                     asyncio.create_task(secret_upload(vidid, title, file_path))
             except Exception as e:
-                raise AssistantErr(_["play_14"])
+                # For audio only, try the same title on SoundCloud. This does not
+                # attempt to bypass YouTube verification or use account cookies.
+                if not video:
+                    try:
+                        print(f"YouTube download failed for {vidid}; trying SoundCloud title search: {type(e).__name__}")
+                        fallback_details, file_path = await SoundCloud.search_download(title)
+                        duration_min = fallback_details["duration_min"]
+                        title = fallback_details["title"]
+                        direct = True
+                        print(f"SoundCloud fallback downloaded: {title}")
+                    except Exception as fallback_error:
+                        print(f"SoundCloud fallback failed: {type(fallback_error).__name__}: {fallback_error}")
+                        raise AssistantErr(_["play_14"])
+                else:
+                    raise AssistantErr(_["play_14"])
 
         if await is_active_chat(chat_id):
             await put_queue(chat_id, original_chat_id, file_path if direct else f"vid_{vidid}", title, duration_min, user_name, vidid, user_id, "video" if video else "audio")
