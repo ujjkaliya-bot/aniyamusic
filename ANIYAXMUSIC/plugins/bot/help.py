@@ -5,8 +5,12 @@
 # --------------------------------------------------------------------------
 
 from typing import Union
+
+import aiohttp
 from pyrogram import filters, types
 from pyrogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton
+
+import config
 from ANIYAXMUSIC import app
 from ANIYAXMUSIC.utils import help_pannel
 from ANIYAXMUSIC.utils.database import get_lang
@@ -17,6 +21,23 @@ from strings import get_string, helpers
 from ANIYAXMUSIC.utils.stuffs.buttons import BUTTONS
 from ANIYAXMUSIC.utils.stuffs.helper import Helper
 
+
+async def _apply_colored_help_markup(chat_id, message_id, keyboard):
+    """Apply Bot API 9.4 button styles to a message created/edited by Pyrogram."""
+    url = f"https://api.telegram.org/bot{config.BOT_TOKEN}/editMessageReplyMarkup"
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "reply_markup": {"inline_keyboard": keyboard},
+    }
+    timeout = aiohttp.ClientTimeout(total=15)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(url, json=payload) as response:
+            result = await response.json()
+            if not result.get("ok"):
+                raise RuntimeError(f"Telegram Bot API rejected colored help keyboard: {result}")
+
+
 @app.on_message(filters.command(["help"]) & filters.private & ~BANNED_USERS)
 @app.on_callback_query(filters.regex("settings_back_helper") & ~BANNED_USERS)
 async def helper_private(
@@ -26,28 +47,27 @@ async def helper_private(
     if is_callback:
         try:
             await update.answer()
-        except:
+        except Exception:
             pass
         chat_id = update.message.chat.id
         language = await get_lang(chat_id)
         _ = get_string(language)
         keyboard = help_pannel(_, True)
-        await update.edit_message_text(
-            _["help_1"].format(SUPPORT_CHAT), reply_markup=keyboard
-        )
+        edited = await update.edit_message_text(_["help_1"].format(SUPPORT_CHAT))
+        await _apply_colored_help_markup(chat_id, edited.id, keyboard)
     else:
         try:
             await update.delete()
-        except:
+        except Exception:
             pass
         language = await get_lang(update.chat.id)
         _ = get_string(language)
         keyboard = help_pannel(_)
-        await update.reply_photo(
+        sent = await update.reply_photo(
             photo=START_IMG_URL,
             caption=_["help_1"].format(SUPPORT_CHAT),
-            reply_markup=keyboard,
         )
+        await _apply_colored_help_markup(sent.chat.id, sent.id, keyboard)
 
 
 @app.on_message(filters.command(["help"]) & filters.group & ~BANNED_USERS)
@@ -93,29 +113,37 @@ async def helper_cb(client, CallbackQuery, _):
         await CallbackQuery.edit_message_text(helpers.HELP_14, reply_markup=keyboard)
     elif cb == "hb15":
         await CallbackQuery.edit_message_text(helpers.HELP_15, reply_markup=keyboard)
-        
-        
+
+
 @app.on_callback_query(filters.regex("mbot_cb") & ~BANNED_USERS)
 async def helper_cb(client, CallbackQuery):
-    await CallbackQuery.edit_message_text(Helper.HELP_M, reply_markup=InlineKeyboardMarkup(BUTTONS.MBUTTON))
+    await CallbackQuery.edit_message_text(
+        Helper.HELP_M, reply_markup=InlineKeyboardMarkup(BUTTONS.MBUTTON)
+    )
 
 
-@app.on_callback_query(filters.regex('managebot123'))
+@app.on_callback_query(filters.regex("managebot123"))
 async def on_back_button(client, CallbackQuery):
     callback_data = CallbackQuery.data.strip()
     cb = callback_data.split(None, 1)[1]
     keyboard = help_pannel(_, True)
     if cb == "settings_back_helper":
-        await CallbackQuery.edit_message_text(
-            _["help_1"].format(SUPPORT_CHAT), reply_markup=keyboard
+        edited = await CallbackQuery.edit_message_text(_["help_1"].format(SUPPORT_CHAT))
+        await _apply_colored_help_markup(
+            CallbackQuery.message.chat.id, edited.id, keyboard
         )
 
-@app.on_callback_query(filters.regex('mplus'))      
+
+@app.on_callback_query(filters.regex("mplus"))
 async def mb_plugin_button(client, CallbackQuery):
     callback_data = CallbackQuery.data.strip()
     cb = callback_data.split(None, 1)[1]
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("ʙᴀᴄᴋ", callback_data=f"mbot_cb")]])
+    keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("ʙᴀᴄᴋ", callback_data="mbot_cb")]]
+    )
     if cb == "Okieeeeee":
-        await CallbackQuery.edit_message_text(f"`something errors`",reply_markup=keyboard,parse_mode=enums.ParseMode.MARKDOWN)
+        await CallbackQuery.edit_message_text(
+            "`something errors`", reply_markup=keyboard
+        )
     else:
         await CallbackQuery.edit_message_text(getattr(Helper, cb), reply_markup=keyboard)
