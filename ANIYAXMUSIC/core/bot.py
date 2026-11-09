@@ -31,28 +31,21 @@ class ANIYA(Client):
         self.username = self.me.username
         self.mention = self.me.mention
 
-        try:
-            await self.send_message(
-                chat_id=config.LOGGER_ID,
-                text=f"<u><b>» {self.mention} ʙᴏᴛ sᴛᴀʀᴛᴇᴅ :</b><u>\n\nɪᴅ : <code>{self.id}</code>\nɴᴀᴍᴇ : {self.name}\nᴜsᴇʀɴᴀᴍᴇ : @{self.username}",
-            )
-        except (errors.ChannelInvalid, errors.PeerIdInvalid):
-            LOGGER(__name__).error(
-                "Bot has failed to access the log group/channel. Make sure that you have added your bot to your log group/channel."
-            )
-            exit()
-        except Exception as ex:
-            LOGGER(__name__).error(
-                f"Bot has failed to access the log group/channel.\n  Reason : {type(ex).__name__}."
-            )
-            exit()
-
-        a = await self.get_chat_member(config.LOGGER_ID, self.id)
-        if a.status != ChatMemberStatus.ADMINISTRATOR:
-            LOGGER(__name__).error(
-                "Please promote your bot as an admin in your log group/channel."
-            )
-            exit()
+        if config.LOGGER_ID:
+            try:
+                await self.send_message(
+                    chat_id=config.LOGGER_ID,
+                    text=f"<u><b>» {self.mention} ʙᴏᴛ sᴛᴀʀᴛᴇᴅ :</b><u>\\n\\nɪᴅ : <code>{self.id}</code>\\nɴᴀᴍᴇ : {self.name}\\nᴜsᴇʀɴᴀᴍᴇ : @{self.username}",
+                )
+                member = await self.get_chat_member(config.LOGGER_ID, self.id)
+                if member.status != ChatMemberStatus.ADMINISTRATOR:
+                    LOGGER(__name__).warning("LOGGER_ID channel: promote the bot as admin to enable log notifications.")
+            except Exception as ex:
+                LOGGER(__name__).warning(
+                    f"Logger channel unavailable; bot will continue without log notifications ({type(ex).__name__})."
+                )
+        else:
+            LOGGER(__name__).warning("LOGGER_ID is not configured; log notifications are disabled.")
         LOGGER(__name__).info(f"Music Bot Started as {self.name}")
 
     async def stop(self):
