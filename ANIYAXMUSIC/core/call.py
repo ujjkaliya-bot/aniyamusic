@@ -107,6 +107,16 @@ class Call(PyTgCalls):
             cache_duration=100,
         )
 
+    async def stop(self):
+        """Stop every PyTgCalls engine so its network sessions are closed."""
+        for engine in (self.one, self.two, self.three, self.four, self.five):
+            try:
+                await engine.stop()
+            except Exception as exc:
+                LOGGER(__name__).warning(
+                    f"Error while stopping a voice-call engine: {type(exc).__name__}"
+                )
+
     async def pause_stream(self, chat_id: int):
         assistant = await group_assistant(self, chat_id)
         await assistant.pause_stream(chat_id)
