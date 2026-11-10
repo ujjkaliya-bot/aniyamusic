@@ -25,7 +25,6 @@ from ANIYAXMUSIC.utils.formatters import time_to_seconds
 FALLBACK_API_URL = "https://shrutibots.site"
 YOUR_API_URL = None
 
-cookies_file = "ANIYAXMUSIC/assets/cookies.txt"
 
 # 🔄 API URL Loader (Dynamic)
 async def get_api_url():
@@ -166,7 +165,7 @@ class YouTubeAPI:
         if videoid: link = self.listbase + link
         if "&" in link: link = link.split("&")[0]
         playlist = await shell_cmd(
-            f"yt-dlp --cookies {cookies_file} -i --get-id --flat-playlist --playlist-end {limit} --skip-download {link}"
+            f"yt-dlp -i --get-id --flat-playlist --playlist-end {limit} --skip-download {link}"
         )
         try:
             result = playlist.split("\n")
@@ -193,7 +192,7 @@ class YouTubeAPI:
     async def formats(self, link: str, videoid: Union[bool, str] = None):
         if videoid: link = self.base + link
         if "&" in link: link = link.split("&")[0]
-        ytdl_opts = {"quiet": True, "cookiefile": cookies_file}
+        ytdl_opts = {"quiet": True, "no_warnings": True}
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -220,9 +219,8 @@ class YouTubeAPI:
         thumbnail = result[query_type]["thumbnails"][0]["url"].split("?")[0]
         return title, duration_min, thumbnail, vidid
 
-    # ─────────────────────────────────────────────
-    # 🔥 MODIFIED DOWNLOAD (USES SHRUTI API DIRECTLY)
-    # ─────────────────────────────────────────────
+    # Download through the configured public API only. No browser cookies,
+    # exported session data, or yt-dlp authentication fallback is used.
     async def download(
         self,
         link: str,
@@ -233,56 +231,17 @@ class YouTubeAPI:
         songvideo: Union[bool, str] = None,
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
-    ) -> str:
-        if videoid: link = self.base + link
+    ):
+        if videoid:
+            link = self.base + link
 
-        # 1️⃣ API Download Attempt
-        is_video_req = True if video or songvideo else False
-        
-        try:
-            downloaded_file = await download_via_shruti(link, is_video=is_video_req)
-            if downloaded_file:
-                return downloaded_file, True  # Success
-        except Exception as e:
-            print(f"API Failed, trying Fallback: {e}")
-
-        # 2️⃣ Fallback (YT-DLP) - Agar API fail ho jaye tabhi chalega
-        # Render par ye fail hi hoga, but safety ke liye rakha hai.
-        loop = asyncio.get_running_loop()
-
-        def audio_dl():
-            ydl_optssx = {
-                "format": "bestaudio/best", "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True, "nocheckcertificate": True, "quiet": True,
-                "no_warnings": True, "cookiefile": cookies_file,
-            }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz): return xyz
-            x.download([link])
-            return xyz
-
-        def video_dl():
-            ydl_optssx = {
-                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
-                "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True, "nocheckcertificate": True, "quiet": True,
-                "no_warnings": True, "cookiefile": cookies_file,
-            }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz): return xyz
-            x.download([link])
-            return xyz
-
-        if video:
-            direct = True
-            downloaded_file = await loop.run_in_executor(None, video_dl)
-        else:
-            direct = True
-            downloaded_file = await loop.run_in_executor(None, audio_dl)
-            
-        return downloaded_file, direct
-                
+        is_video_req = bool(video or songvideo)
+        downloaded_file = await download_via_shruti(
+            link, is_video=is_video_req
+        )
+        if not downloaded_file or not os.path.isfile(downloaded_file):
+            raise RuntimeError(
+                "YouTube download API did not return a file; "
+                "yt-dlp authentication fallback is disabled."
+            )
+        return downloaded_file, True
