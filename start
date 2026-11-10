@@ -11,4 +11,6 @@ elif [ -f venv/bin/activate ]; then
     source venv/bin/activate
 fi
 
+python3 patch_pytgcalls.py || exit 1
+
 exec python3 -m ANIYAXMUSIC
